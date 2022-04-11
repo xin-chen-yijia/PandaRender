@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# vs
+.vs
+
+# out
+out
