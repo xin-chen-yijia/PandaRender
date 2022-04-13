@@ -41,8 +41,16 @@ int main()
 	float zbuffer[width * height] = { 0 };
 	//light_dir.normalize();
 
-	auto worldToScreenPos = [width,height](vec3 a) {
-		return vec3(int((a.x + 1.0f) * width * 0.5f + 0.5f), int((a.y + 1.0f) * height * 0.5f + 0.5f), a.z);
+	mat4x4 view = lookat({ 0,1.0f,1.5f }, { 0,0,0 }, { 0,1,0 });
+	mat4x4 proj = Frustum(-1, 1, -1, 1, 0.3f, 100.0f);// Perspective(60, 16.0f / 9.0f, 0.3f, 100.0f);
+
+	auto worldToScreenPos = [width,height, view,proj](vec3 a) {
+		vec<float, 4> tmp = { a.x,a.y,a.z,1.0f };
+		tmp = proj* view *tmp;
+		tmp[0] /= tmp[3];
+		tmp[1] /= tmp[3];
+		tmp[2] /= tmp[3];
+		return vec3(int((tmp[0] + 1.0f) * width * 0.5f + 0.5f), int((tmp[1] + 1.0f) * height * 0.5f + 0.5f), tmp[2]);
 	};
 
 	Model head("Resource/african_head.obj");
@@ -96,8 +104,7 @@ int main()
 
 		triangle(worldPoses, uvs,diffuse, zbuffer, image, TGAColor(intensity * 255, intensity* 255, intensity * 255,255));
 	}
-
-	image.write_tga_file("d:/Temp/a.tga",true,false);
+	image.write_tga_file("d:/Temp/a.tga",false,false);
 
 	return 0;
 }

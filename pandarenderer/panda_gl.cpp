@@ -183,3 +183,33 @@ vec3 barycentric(const vec3& A, const vec3& B, const vec3& C, const vec3& P) {
 		return vec3(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
 	return vec3(-1, 1, 1); // in this case generate negative coordinates, it will be thrown away by the rasterizator
 }
+
+mat4x4 Ortho(float bottom, float top, float left, float right, float near, float far)
+{
+	mat4x4 tmp = { {{2/(right-left),0,0,-(right+left)/(right-left)},   {0,2/(top-bottom),0,-(top+bottom)/(top-bottom)},   {0,0,-2/(far-near),-(far+near)/(far-near)},   {0,0,0,1.0f}} };
+	return tmp;
+}
+
+mat4x4 Frustum(float bottom, float top, float left, float right, float near, float far)
+{
+	mat4x4 tmp = { {{2*near / (right - left),0,(right + left) / (right - left), 0},   {0,2*near / (top - bottom),(top + bottom) / (top - bottom),0},   {0,0,-(far + near) / (far - near),-2*far*near / (far - near)},   {0,0,-1,0}} };
+	return tmp;
+}
+
+mat4x4 Perspective(float fovy, float aspect, float zNear, float zFar)
+{
+	float half = fovy * 0.5f;
+	float h = tan(half / 180.0f * 3.141592653) * zNear;
+	float w = h * aspect;
+
+	return Frustum(-h, h, -w, w, zNear, zFar);
+}
+
+mat4x4 lookat(const vec3 eye, const vec3 center, const vec3 up) { // check https://github.com/ssloy/tinyrenderer/wiki/Lesson-5-Moving-the-camera
+	vec3 z = (center - eye).normalize();
+	vec3 x = cross(up, z).normalize();
+	vec3 y = cross(z, x).normalize();
+	mat4x4 Minv = { {{x.x,x.y,x.z,0.0f},   {y.x,y.y,y.z,0.0f},   {z.x,z.y,z.z,0.0f},   {0,0,0,1.0f}} };
+	mat4x4 Tr = { {{1,0,0,-eye.x}, {0,1,0,-eye.y}, {0,0,1,-eye.z}, {0,0,0,1}} };
+	return  Minv * Tr;
+}

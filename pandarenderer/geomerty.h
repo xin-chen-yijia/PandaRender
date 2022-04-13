@@ -18,20 +18,19 @@ public:
 	T& operator[](int index)
 	{
 		assert(index >= 0 && index < n);
-		return data_[index];
+		return data[index];
 	}
 
 	T operator[](int index) const
 	{
 		assert(index >= 0 && index < n);
-		return data_[index];
+		return data[index];
 	}
 
 	T norm2() { return *this * *this; }
 	double norm() { return std::sqrt(norm2()); }
 
-private:
-	T data_[n] = { 0 };
+	T data[n] = { 0 };
 };
 
 
@@ -210,7 +209,7 @@ vec3 cross(const vec3& v1, const vec3& v2);
 template<int n> class dt;
 
 template<int nrows,int ncols> 
-class mat
+struct mat
 {
 public:
 	vec<Float, ncols> data[nrows] = { {} };
@@ -253,7 +252,7 @@ public:
 		mat<nrows, ncols> tmp = { 0 };
 		for (int i = 0;i < nrows;++i)
 		{
-			data[i][i] = 1;
+			tmp.data[i][i] = 1;
 		}
 
 		return tmp;
@@ -425,3 +424,5 @@ public:
 		return src[0][0];
 	}
 };
+
+using mat4x4 = mat<4, 4>;
