@@ -1,7 +1,6 @@
 #include "model.h"
 
 #include <fstream>
-#include <string>
 #include <sstream>
 #include <iostream>
 
@@ -18,12 +17,17 @@ Model::Model(const char* filename) : verts_(), faces_() {
         char trash;
         if (!line.compare(0, 2, "v ")) {
             iss >> trash;
-            vec3 v;
+            vec3f v;
             //for (int i = 0;i < 3;i++) iss >> v.raw[i];
             iss >> v.x;
             iss >> v.y;
             iss >> v.z;
             verts_.push_back(v);
+        } else if (!line.compare(0, 3, "vn ")) {
+            iss >> trash >> trash;
+            vec3f n;
+            for (int i = 0;i < 3;i++) iss >> n[i];
+            norms_.push_back(n);
         }
         else if (!line.compare(0, 2, "f ")) {
             std::vector<vec3i> f;
@@ -42,12 +46,16 @@ Model::Model(const char* filename) : verts_(), faces_() {
         }
         else if (!line.compare(0, 3, "vt ")) {
             iss >> trash >> trash;
-            vec2 uv;
+            vec2f uv;
             for (int i = 0;i < 2;i++) iss >> uv[i];
             uv_.push_back(uv);
         }
     }
     std::cerr << "# v# " << verts_.size() << " f# " << faces_.size() << std::endl;
+
+    load_texture(filename, "_diffuse.tga", diffusemap_);
+    load_texture(filename, "_nm.tga", normalmap_);
+    load_texture(filename, "_spec.tga", specularmap_);
 }
 
 int Model::nverts()
@@ -60,7 +68,7 @@ int Model::nfaces()
     return (int)faces_.size();
 }
 
-vec3 Model::vert(int i)
+vec3f Model::vert(int i)
 {
     assert(i >= 0 && i < verts_.size());
     return verts_[i];
@@ -77,8 +85,31 @@ std::vector<int> Model::face(int idx)
     return tmp;
 }
 
-vec2 Model::uv(int iface, int nvert) {
+vec2f Model::uv(int iface, int nvert) {
     int idx = faces_[iface][nvert][1];
     return uv_[idx];
 }
 
+void Model::load_texture(std::string filename, const char* suffix, TGAImage& img) {
+    std::string texfile(filename);
+    size_t dot = texfile.find_last_of(".");
+    if (dot != std::string::npos) {
+        texfile = texfile.substr(0, dot) + std::string(suffix);
+        std::cerr << "texture file " << texfile << " loading " << (img.read_tga_file(texfile.c_str()) ? "ok" : "failed") << std::endl;
+        img.flip_vertically();
+    }
+}
+
+vec3f Model::normal(vec2f uvf) {
+    vec2i uv(uvf[0] * normalmap_.get_width(), uvf[1] * normalmap_.get_height());
+    panda::TGAColor c = normalmap_.get(uv[0], uv[1]);
+    vec3f res;
+    for (int i = 0; i < 3; i++)
+        res[2 - i] = (float)c[i] / 255.f * 2.f - 1.f;
+    return res;
+}
+
+vec3f Model::normal(int iface, int nthvert) {
+    int idx = faces_[iface][nthvert][2];
+    return norms_[idx].normalize();
+}

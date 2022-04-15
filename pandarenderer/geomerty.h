@@ -2,14 +2,7 @@
 #include <cmath>
 #include <cassert>
 
-#ifdef DOUBLE
-#define Float double
-#else
-#define Float float
-#endif // DOUBLE
-
-
-template<typename T, int n>
+template<int n,typename T>
 class vec
 {
 public:
@@ -35,7 +28,7 @@ public:
 
 
 template<typename T>
-class vec<T,2>
+class vec<2,T>
 {
 public:
 	vec() = default;
@@ -56,8 +49,8 @@ public:
 		return i == 0 ? x : y;
 	}
 
-	Float norm2() { return *this * *this; }
-	Float norm() { return std::sqrt(norm2()); }
+	T norm2() { return *this * *this; }
+	T norm() { return std::sqrt(norm2()); }
 
 	vec& normalize()
 	{
@@ -70,7 +63,7 @@ public:
 };
 
 template<typename T>
-class vec<T,3> {
+class vec<3,T> {
 public:
 	vec() = default;
 	vec(T x, T y, T z) :x(x), y(y), z(z)
@@ -90,8 +83,8 @@ public:
 		return (i == 0 ? x : (i == 1 ? y : z));
 	}
 
-	Float norm2() { return *this * *this; }
-	Float norm() { return std::sqrt(norm2()); }
+	T norm2() { return *this * *this; }
+	T norm() { return std::sqrt(norm2()); }
 
 	vec& normalize()
 	{
@@ -102,8 +95,8 @@ public:
 	T x{}, y{}, z{};
 };
 
-template<typename T, int n>
-T operator*(const vec<T, n>& lhs, const vec<T, n>& rhs)
+template<int n,typename T>
+T operator*(const vec<n,T>& lhs, const vec<n,T>& rhs)
 {
 	T sum = 0;
 	for (int i = 0;i < n;++i)
@@ -114,10 +107,10 @@ T operator*(const vec<T, n>& lhs, const vec<T, n>& rhs)
 	return sum;
 }
 
-template<typename T, int n>
-vec<T, n> operator+(const vec<T, n>& lhs, const vec<T, n>& rhs)
+template<int n,typename T>
+vec<n,T> operator+(const vec<n,T>& lhs, const vec<n,T>& rhs)
 {
-	vec<T, n> tmp;
+	vec<n,T> tmp;
 	for (int i = 0;i < n;++i)
 	{
 		tmp[i] = lhs[i] + rhs[i];
@@ -126,10 +119,10 @@ vec<T, n> operator+(const vec<T, n>& lhs, const vec<T, n>& rhs)
 	return tmp;
 }
 
-template<typename T, int n>
-vec<T, n> operator-(const vec<T, n>& lhs, const vec<T, n>& rhs)
+template<int n,typename T>
+vec<n,T> operator-(const vec<n,T>& lhs, const vec<n,T>& rhs)
 {
-	vec<T, n> tmp;
+	vec<n,T> tmp;
 	for (int i = 0;i < n;++i)
 	{
 		tmp[i] = lhs[i] - rhs[i];
@@ -138,10 +131,10 @@ vec<T, n> operator-(const vec<T, n>& lhs, const vec<T, n>& rhs)
 	return tmp;
 }
 
-template<typename T, int n>
-vec<T, n> operator*(const vec<T, n>& lhs, Float rhs)
+template<int n,typename T, typename U>
+vec<n,T> operator*(const vec<n,T>& lhs, const U& rhs)
 {
-	vec<T, n> tmp;
+	vec<n,T> tmp;
 	for (int i = 0;i < n;++i)
 	{
 		tmp[i] = lhs[i] * rhs;
@@ -149,10 +142,10 @@ vec<T, n> operator*(const vec<T, n>& lhs, Float rhs)
 
 	return tmp;
 }
-template<typename T, int n>
-vec<T, n> operator*(Float lhs, const vec<T, n>& rhs)
+template<int n, typename T>
+vec<n,T> operator*(T lhs, const vec<n,T>& rhs)
 {
-	vec<T, n> tmp;
+	vec<n,T> tmp;
 	for (int i = 0;i < n;++i)
 	{
 		tmp[i] = lhs * rhs[i];
@@ -161,10 +154,10 @@ vec<T, n> operator*(Float lhs, const vec<T, n>& rhs)
 	return tmp;
 }
 
-template<typename T, int n>
-vec<T, n> operator/(const vec<T, n>& lhs, Float rhs)
+template<int n, typename T, typename U>
+vec<n,T> operator/(const vec<n,T>& lhs, const U& rhs)
 {
-	vec<T, n> tmp;
+	vec<n,T> tmp;
 	for (int i = 0;i < n;++i)
 	{
 		tmp[i] = lhs[i] / rhs;
@@ -173,10 +166,10 @@ vec<T, n> operator/(const vec<T, n>& lhs, Float rhs)
 	return tmp;
 }
 
-template<typename T, int n1, int n2>
-vec<T, n1> embed(const vec<T, n2>& lhs, T fill = 1.0f)
+template<int n1, int n2, typename T>
+vec<n1,T> embed(const vec<n2,T>& lhs, T fill = 1.0f)
 {
-	vec<T, n1> tmp;
+	vec<n1,T> tmp;
 	for (int i = 0;i < n1;++i)
 	{
 		tmp[i] = (i < n2 ? lhs[i] : fill);
@@ -185,10 +178,10 @@ vec<T, n1> embed(const vec<T, n2>& lhs, T fill = 1.0f)
 	return tmp;
 }
 
-template<typename T, int n1, int n2>
-vec<T, n1> proj(const vec<T, n2>& v)
+template<int n1, int n2, typename T>
+vec<n1,T> proj(const vec<n2,T>& v)
 {
-	vec<T, n1> tmp;
+	vec<n1,T> tmp;
 	for (int i = 0;i < n1;++i)
 	{
 		tmp[i] = v[i];
@@ -198,38 +191,39 @@ vec<T, n1> proj(const vec<T, n2>& v)
 }
 
 
-using vec2 = vec<Float,2>;
-using vec3 = vec<Float,3>;
-using vec2i = vec<int, 2>;
-using vec3i = vec<int, 3>;
+using vec2f = vec<2,float>;
+using vec3f = vec<3,float>;
+using vec4f = vec<4,float>;
+using vec2i = vec<2, int>;
+using vec3i = vec<3, int>;
 
-vec3 cross(const vec3& v1, const vec3& v2);
+vec3f cross(const vec3f& v1, const vec3f& v2);
 
 
-template<int n> class dt;
+template<int n,typename T> class dt;
 
-template<int nrows,int ncols> 
+template<int nrows,int ncols,typename T> 
 struct mat
 {
 public:
-	vec<Float, ncols> data[nrows] = { {} };
+	vec<ncols, T> data[nrows] = { {} };
 
-	vec<Float, ncols>& operator[](int i)
+	vec<ncols,T>& operator[](int i)
 	{
 		assert(i >= 0 && i < nrows);
 		return data[i];
 	}
 
-	const vec<Float, ncols>& operator[](int i) const
+	const vec<ncols,T>& operator[](int i) const
 	{
 		assert(i >= 0 && i < nrows);
 		return data[i];
 	}
 
-	vec<Float, nrows> col(const int idx) const
+	vec<nrows,T> col(const int idx) const
 	{
 		assert(idx >= 0 && idx < ncols);
-		vec<Float, nrows> tmp;
+		vec<nrows, T> tmp;
 		for (int i = 0;i < nrows;++i)
 		{
 			tmp[i] = data[i][idx];
@@ -238,7 +232,7 @@ public:
 		return tmp;
 	}
 
-	void set_col(int idx, const vec<Float, nrows>& v)
+	void set_col(int idx, const vec<nrows,T>& v)
 	{
 		assert(idx >= 0 && idx < ncols);
 		for (int i = 0;i < nrows;++i)
@@ -247,9 +241,9 @@ public:
 		}
 	}
 
-	static mat<nrows,ncols> identity()
+	static mat<nrows,ncols,T> identity()
 	{
-		mat<nrows, ncols> tmp = { 0 };
+		mat<nrows, ncols,T> tmp = { 0 };
 		for (int i = 0;i < nrows;++i)
 		{
 			tmp.data[i][i] = 1;
@@ -258,14 +252,14 @@ public:
 		return tmp;
 	}
 
-	Float det() const
+	T det() const
 	{
-		return dt<ncols>::det(*this);
+		return dt<ncols,T>::det(*this);
 	}
 
-	mat<nrows - 1, ncols - 1> get_minor(const int row, const int col) const
+	mat<nrows - 1, ncols - 1, T> get_minor(const int row, const int col) const
 	{
-		mat<nrows - 1, ncols - 1> ret;
+		mat<nrows - 1, ncols - 1, T> ret;
 		for (int i = 0;i < nrows - 1;++i)
 		{
 			for (int j = 0;j < ncols;++j)
@@ -277,12 +271,12 @@ public:
 		return ret;
 	}
 
-	Float cofactor(const int row, const int col) const {
+	T cofactor(const int row, const int col) const {
 		return get_minor(row, col).det() * ((row + col) % 2 ? -1 : 1);
 	}
 
-	mat<nrows, ncols> adjugate() const {
-		mat<nrows, ncols> ret;
+	mat<nrows, ncols, T> adjugate() const {
+		mat<nrows, ncols, T> ret;
 		for (int i = 0;i < nrows;++i)
 		{
 			for (int j = 0;j < ncols;++j)
@@ -294,20 +288,20 @@ public:
 		return ret;
 	}
 
-	mat<nrows, ncols> invert_transpose() const
+	mat<nrows, ncols, T> invert_transpose() const
 	{
-		mat<nrows, ncols> ret = adjugate();
+		mat<nrows, ncols, T> ret = adjugate();
 		return ret / (ret[0] * data[0]);
 	}
 
-	mat<nrows, ncols> invert() const
+	mat<nrows, ncols, T> invert() const
 	{
 		return invert_transpose().transpose();
 	}
 
-	mat<nrows, ncols> transpose() const
+	mat<nrows, ncols, T> transpose() const
 	{
-		mat<ncols, nrows> ret;
+		mat<ncols, nrows, T> ret;
 		for (int i = 0;i < ncols;++i)
 		{
 			ret[i] = this->col(i);
@@ -318,10 +312,10 @@ public:
 
 };
 
-template<int nrows, int ncols> 
-vec<Float,nrows> operator*(const mat<nrows, ncols>& lhs, const vec<Float, ncols>& rhs)
+template<int nrows, int ncols,typename T> 
+vec<nrows,T> operator*(const mat<nrows, ncols,T>& lhs, const vec<ncols,T>& rhs)
 {
-	vec<Float, nrows> ret;
+	vec<nrows,T> ret;
 	for (int i = 0;i < nrows;++i)
 	{
 		ret[i] = lhs[i] * rhs;
@@ -330,10 +324,10 @@ vec<Float,nrows> operator*(const mat<nrows, ncols>& lhs, const vec<Float, ncols>
 	return ret;
 }
 
-template<int R1, int C1, int C2>
-mat<R1, C2> operator*(const mat<R1, C1>& lhs, const mat<C1, C2>& rhs)
+template<int R1, int C1, int C2, typename T>
+mat<R1, C2,T> operator*(const mat<R1, C1,T>& lhs, const mat<C1, C2,T>& rhs)
 {
-	mat<R1, C2> ret;
+	mat<R1, C2,T> ret;
 	for (int i = 0;i < R1;++i)
 	{
 		for (int j = 0;j < C2;++j)
@@ -345,10 +339,10 @@ mat<R1, C2> operator*(const mat<R1, C1>& lhs, const mat<C1, C2>& rhs)
 	return ret;
 }
 
-template<int nrows,int ncols>
-mat<nrows, ncols> operator*(const mat<nrows, ncols>& lhs, Float val)
+template<int nrows,int ncols,typename T, typename U>
+mat<nrows, ncols,T> operator*(const mat<nrows, ncols,T>& lhs, const U& val)
 {
-	mat<nrows, ncols> ret;
+	mat<nrows, ncols, T> ret;
 	for (int i = 0;i < nrows;++i)
 	{
 		ret[i] = lhs[i] * val;
@@ -357,10 +351,10 @@ mat<nrows, ncols> operator*(const mat<nrows, ncols>& lhs, Float val)
 	return ret;
 }
 
-template<int nrows,int ncols>
-mat<nrows, ncols> operator/(const mat<nrows, ncols>& lhs, Float val)
+template<int nrows,int ncols, typename T, typename U>
+mat<nrows, ncols,T> operator/(const mat<nrows, ncols,T>& lhs, const U& val)
 {
-	mat<nrows, ncols> ret;
+	mat<nrows, ncols,T> ret;
 	for (int i = 0;i < nrows;++i)
 	{
 		ret[i] = lhs[i] / val;
@@ -369,10 +363,10 @@ mat<nrows, ncols> operator/(const mat<nrows, ncols>& lhs, Float val)
 	return ret;
 }
 
-template<int nrows,int ncols>
-mat<nrows, ncols> operator+(const mat<nrows, ncols>& lhs, const mat<nrows, ncols>& rhs)
+template<int nrows,int ncols,typename T>
+mat<nrows, ncols, T> operator+(const mat<nrows, ncols, T>& lhs, const mat<nrows, ncols,T>& rhs)
 {
-	mat<nrows, ncols> ret;
+	mat<nrows, ncols,T> ret;
 	for (int i = 0;i < nrows;++i)
 	{
 		for (int j = 0;j < ncols;++j)
@@ -384,10 +378,10 @@ mat<nrows, ncols> operator+(const mat<nrows, ncols>& lhs, const mat<nrows, ncols
 	return ret;
 }
 
-template<int nrows,int ncols>
-mat<nrows, ncols> operator-(const mat<nrows, ncols>& lhs, const mat<nrows, ncols>& rhs)
+template<int nrows,int ncols,typename T>
+mat<nrows, ncols,T> operator-(const mat<nrows, ncols,T>& lhs, const mat<nrows, ncols,T>& rhs)
 {
-	mat<nrows, ncols> ret;
+	mat<nrows, ncols,T> ret;
 	for (int i = 0;i < nrows;++i)
 	{
 		for (int j = 0;j < ncols;++j)
@@ -399,13 +393,13 @@ mat<nrows, ncols> operator-(const mat<nrows, ncols>& lhs, const mat<nrows, ncols
 	return ret;
 }
 
-template<int n>
+template<int n,typename T>
 class dt
 {
 public:
-	static Float det(const mat<n, n>& src)
+	static T det(const mat<n, n, T>& src)
 	{
-		Float ret = 0.0;
+		T ret = 0.0;
 		for (int i = 0;i < n;++i)
 		{
 			ret += src[0][i] * src.cofactor(0, i);
@@ -415,14 +409,14 @@ public:
 	}
 };
 
-template<>
-class dt<1>
+template<typename T>
+class dt<1,T>
 {
 public:
-	static Float det(const mat<1,1>& src)
+	static T det(const mat<1,1,T>& src)
 	{
 		return src[0][0];
 	}
 };
 
-using mat4x4 = mat<4, 4>;
+using mat4x4 = mat<4, 4, float>;

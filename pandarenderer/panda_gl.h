@@ -3,17 +3,29 @@
 #include "geomerty.h"
 #include "TGAImage.h"
 
-void line(int x0, int y0, int x1, int y1, panda::TGAImage& image, const panda::TGAColor& color);
+namespace panda
+{
+	class IShader
+	{
+	public:
+		virtual ~IShader() {}
+		virtual vec4f vertex(int iface, int nthvert) = 0;
+		virtual bool fragment(vec3f bar, TGAColor& color) = 0;
+	};
 
-void triangle(vec2i p0, vec2i p1, vec2i p2, panda::TGAImage& image, const panda::TGAColor& color);
-void triangle(vec3* pts, float* zbuffer, panda::TGAImage& image, const panda::TGAColor& color);
-void triangle(vec3* pts, vec2i* uvs, panda::TGAImage& inImage, float* zbuffer, panda::TGAImage& image, const panda::TGAColor& color);
+	void line(int x0, int y0, int x1, int y1, panda::TGAImage& image, const panda::TGAColor& color);
 
-vec3 barycentric(const vec3& A, const vec3& B, const vec3& C, const vec3& P);
-vec3 barycentric(const vec2 tri[3], const vec2 P);
+	void triangle(vec2i p0, vec2i p1, vec2i p2, panda::TGAImage& image, const panda::TGAColor& color);
+	void triangle(vec3f* pts, float* zbuffer, panda::TGAImage& image, const panda::TGAColor& color);
+	void triangle(vec3f* pts, vec2i* uvs, panda::TGAImage& inImage, float* zbuffer, panda::TGAImage& image);
+	void triangle(vec4f* pts, float* zbuffer, IShader* shader, panda::TGAImage& image);
 
-mat4x4 Ortho(float bottom, float top, float left, float right, float near, float far);
-mat4x4 Frustum(float bottom, float top, float left, float right, float near, float far);
-mat4x4 Perspective(float fovy, float aspect, float zNear, float zFar);
-mat4x4 lookat(const vec3 eye, const vec3 center, const vec3 up);
+	vec3f barycentric(const vec3f& A, const vec3f& B, const vec3f& C, const vec3f& P);
+	vec3f barycentric(const vec2f tri[3], const vec2f& P);
 
+	mat4x4 Ortho(float bottom, float top, float left, float right, float near, float far);
+	mat4x4 Frustum(float bottom, float top, float left, float right, float near, float far);
+	mat4x4 Perspective(float fovy, float aspect, float zNear, float zFar);
+	mat4x4 Lookat(const vec3f eye, const vec3f center, const vec3f up);
+	mat4x4 Viewport(int x, int y, int w, int h);
+}// namespace panda

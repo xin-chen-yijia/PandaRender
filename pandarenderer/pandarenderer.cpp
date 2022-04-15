@@ -6,103 +6,89 @@
 #include "panda_gl.h"
 #include "model.h"
 #include <memory>
+#include <algorithm>
 
 using namespace std;
 using namespace panda;
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
+const int width = 500;
+const int height = 500;
 
-class A {
+shared_ptr<Model> headModel;
+TGAImage diffuse;
+vec3f light_dir(0, 0, 1); // define light_dir
+float zbuffer[width * height] = { 0 };
+
+class GouraudShader : public IShader {
 public:
-	A() { printf("A cons\n"); }
+	mat4x4 proj;
+	mat4x4 viewport;
+
+	TGAImage diffuse;
+	vec3f varying_intensity;
+	vec2f varying_uvs[3];
+
+	vec4f vertex(int iface, int nthvert) override
+	{
+		varying_intensity[nthvert] = headModel->normal(iface, nthvert)* light_dir; // get diffuse lighting intensity
+		auto v = headModel->vert(headModel->face(iface)[nthvert]);
+		vec4f tmp = { v.x,v.y,v.z,1.0f };
+
+		varying_uvs[nthvert] = headModel->uv(iface, nthvert);
+		return viewport * proj * tmp;
+	}
+
+	bool fragment(vec3f bar, TGAColor& color) override
+	{
+		vec2f uv(0, 0);
+		for (int i = 0;i < 3;++i)
+		{
+			uv.x += varying_uvs[i].x * bar[i];
+			uv.y += varying_uvs[i].y * bar[i];
+		}
+		uv.y = 1.0f - uv.y;
+
+		float intensity = varying_intensity * bar;
+		color = diffuse.get(uv.x * diffuse.get_width(), uv.y * diffuse.get_height()) *intensity;
+		return false;
+	}
 };
 
 int main()
 {
-	const int width = 500;
-	const int height = 500;
+
 	TGAImage image(width, height, TGAImage::RGB);
-	//line(100, 100, 200, 450, image, white);
-	//line(500, 500, 100, 100, image, white);
 
-	//triangle(vec2i(100, 100), vec2i(100, 300), vec2i(300, 200), image, red);
-	//triangle(vec2i(300, 300), vec2i(450, 450), vec2i(400, 250), image, red);
-	//triangle(vec2i(100, 300), vec2i(300, 300), vec2i(250, 400), image, white);
-
-	TGAImage diffuse;
 	if (!diffuse.read_tga_file("Resource/african_head_diffuse.tga"))
 	{
 		printf("read diffuse fail...\n");
 		return 1;
 	}
 
-	vec3 light_dir(0, 0, -1); // define light_dir
-	float zbuffer[width * height] = { 0 };
-	//light_dir.normalize();
+	mat4x4 viewport = Viewport(width / 8.0f, height/8.0f, width*0.75f, height*0.75f);
+	mat4x4 view = Lookat({ 0,0.0f,2.0f }, { 0,0,0 }, { 0,1,0 });
+	//mat4x4 proj = Frustum(-0.5f, 0.5f, -0.5f, 0.5f, 0.3f, 100.0f);
+	mat4x4 proj = Perspective(60.0, 1.0f, 0.3f, 100.0f);
+	//mat4x4 proj = mat4x4::identity();
+	//proj[3][2] = -0.3f;
 
-	mat4x4 view = lookat({ 0,1.0f,1.5f }, { 0,0,0 }, { 0,1,0 });
-	mat4x4 proj = Frustum(-1, 1, -1, 1, 0.3f, 100.0f);// Perspective(60, 16.0f / 9.0f, 0.3f, 100.0f);
+	GouraudShader gaudShader;
+	gaudShader.viewport = viewport;
+	gaudShader.proj = proj* view;
+	gaudShader.diffuse = diffuse;
 
-	auto worldToScreenPos = [width,height, view,proj](vec3 a) {
-		vec<float, 4> tmp = { a.x,a.y,a.z,1.0f };
-		tmp = proj* view *tmp;
-		tmp[0] /= tmp[3];
-		tmp[1] /= tmp[3];
-		tmp[2] /= tmp[3];
-		return vec3(int((tmp[0] + 1.0f) * width * 0.5f + 0.5f), int((tmp[1] + 1.0f) * height * 0.5f + 0.5f), tmp[2]);
-	};
-
-	Model head("Resource/african_head.obj");
-	for (int i = 0;i < head.nfaces();++i)
+	headModel = make_shared<Model>("Resource/african_head.obj");
+	for (int i = 0;i < headModel->nfaces();++i)
 	{
-		//for (int j = 0;j < 3;++j)
-		//{
-		//	auto v0 = head.vert(head.face(i)[j]);
-		//	auto v1 = head.vert(head.face(i)[(j+1)%3]);
-
-		//	int x0 = (v0.x + 1.0) * width / 2;
-		//	int y0 = (v0.y + 1.0) * height/ 2;
-		//	int x1 = (v1.x + 1.0) * width / 2;
-		//	int y1 = (v1.y + 1.0) * height/ 2;
-
-		//	line(x0, y0, x1, y1, image, white);
-		//}
-
-		vec2i points[3];
-		vec3 worldPoses[3];
+		vec4f vexPoses[3];
 		for (int j = 0;j < 3;++j)
 		{
-			auto v0 = head.vert(head.face(i)[j]);
-			int x0 = (v0.x + 1.0) * width / 2.0;
-			int y0 = (v0.y + 1.0) * height/ 2.0;
-			points[j] = vec2i(x0, y0);
-			worldPoses[j] = worldToScreenPos(v0);
+			vexPoses [j]= gaudShader.vertex(i, j);
 		}
 
-		vec3 A = head.vert(head.face(i)[1]) - head.vert(head.face(i)[0]);
-		vec3 B = head.vert(head.face(i)[2]) - head.vert(head.face(i)[0]);
-		
-		vec3 normal = cross(B, A);
-		normal.normalize();
-		float intensity = normal * light_dir;
-		if (intensity < 0)
-		{
-			intensity = 0.0f;
-		}
-
-		//uv
-
-		vec2i uvs[3];
-		for (int j = 0;j < 3;++j)
-		{
-			auto tmp = head.uv(i, j);
-			uvs[j].x = tmp.x * diffuse.get_width();
-			uvs[j].y = (1.0-tmp.y) * diffuse.get_height();
-		}
-
-
-		triangle(worldPoses, uvs,diffuse, zbuffer, image, TGAColor(intensity * 255, intensity* 255, intensity * 255,255));
+		triangle(vexPoses, zbuffer, &gaudShader, image);
 	}
 	image.write_tga_file("d:/Temp/a.tga",false,false);
 

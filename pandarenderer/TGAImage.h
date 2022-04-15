@@ -32,6 +32,13 @@ namespace panda
             for (int i = bpp; i--; bgra[i] = p[i]);
         }
         std::uint8_t& operator[](const int i) { return bgra[i]; }
+
+        TGAColor operator *(float intensity) const {
+            TGAColor res = *this;
+            intensity = (intensity > 1.f ? 1.f : (intensity < 0.f ? 0.f : intensity));
+            for (int i = 0; i < 4; i++) res.bgra[i] = bgra[i] * intensity;
+            return res;
+        }
     };
 
 
