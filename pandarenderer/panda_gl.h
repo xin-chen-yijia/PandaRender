@@ -18,7 +18,7 @@ namespace panda
 	void triangle(vec2i p0, vec2i p1, vec2i p2, panda::TGAImage& image, const panda::TGAColor& color);
 	void triangle(vec3f* pts, float* zbuffer, panda::TGAImage& image, const panda::TGAColor& color);
 	void triangle(vec3f* pts, vec2i* uvs, panda::TGAImage& inImage, float* zbuffer, panda::TGAImage& image);
-	void triangle(vec4f* pts, float* zbuffer, IShader* shader, panda::TGAImage& image);
+	void triangle(vec4f* clip_verts, float* zbuffer, const mat4x4& viewPort, IShader* shader, panda::TGAImage& image);
 
 	vec3f barycentric(const vec3f& A, const vec3f& B, const vec3f& C, const vec3f& P);
 	vec3f barycentric(const vec2f tri[3], const vec2f& P);

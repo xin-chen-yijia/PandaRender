@@ -167,45 +167,50 @@ void panda::triangle(vec3f* pts, vec2i* uvs, panda::TGAImage& inImage, float* zb
 	}
 }
 
-void panda::triangle(vec4f* pts, float* zbuffer, IShader* shader, panda::TGAImage& image)
+void panda::triangle(vec4f* clip_verts, float* zbuffer, const mat4x4& viewPort, IShader* shader, panda::TGAImage& image)
 {
 	vec2f boxmin(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
 	vec2f boxmax(std::numeric_limits<float>::min(), std::numeric_limits<float>::min());
 	vec2f clamp(image.get_width() - 1, image.get_height() - 1);
+	vec4f ndc[3] = { (clip_verts[0] / clip_verts[0][3]), (clip_verts[1] / clip_verts[1][3]), (clip_verts[2] / clip_verts[2][3]) };
+	vec4f screen_pts[3] = { viewPort * ndc[0],viewPort * ndc[1], viewPort * ndc[2] };
+	//vec4f screen_pts[3] = { viewPort * clip_verts[0],viewPort * clip_verts[1], viewPort * clip_verts[2] };
+	//vec4f ndc[3] = { (screen_pts[0] / screen_pts[0][3]), (screen_pts[1] / screen_pts[1][3]), (screen_pts[2] / screen_pts[2][3]) };
 	for (int i = 0;i < 3;++i)
 	{
-		boxmin.x = std::max(0.0f, std::min(boxmin.x, pts[i][0]/ pts[i][3]));
-		boxmin.y = std::max(0.0f, std::min(boxmin.y, pts[i][1] / pts[i][3]));
+		boxmin.x = std::max(0.0f, std::min(boxmin.x, screen_pts[i][0]));
+		boxmin.y = std::max(0.0f, std::min(boxmin.y, screen_pts[i][1]));
 
-		boxmax.x = std::min(clamp.x, std::max(boxmax.x, pts[i][0] / pts[i][3]));
-		boxmax.y = std::min(clamp.y, std::max(boxmax.y, pts[i][1] / pts[i][3]));
+		boxmax.x = std::min(clamp.x, std::max(boxmax.x, screen_pts[i][0]));
+		boxmax.y = std::min(clamp.y, std::max(boxmax.y, screen_pts[i][1]));
 	}
-
-
+	
 	vec2i P;
 	for (P.x = boxmin.x;P.x <= boxmax.x;++P.x)
 	{
 		for (P.y = boxmin.y;P.y <= boxmax.y;++P.y)
 		{
-			vec3f coor = barycentric(proj<3>(pts[0]/pts[0][3]), proj<3>(pts[1]/pts[1][3]), proj<3>(pts[2]/pts[2][3]), vec3f(P.x,P.y,1.0f));
-			if (coor.x < 0 || coor.y < 0 || coor.z < 0) continue;
+			vec3f bc_screen = barycentric(proj<3>(screen_pts[0]), proj<3>(screen_pts[1]), proj<3>(screen_pts[2]), vec3f(P.x,P.y,1.0f));
+			if (bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0) continue;
 
-			float z = pts[0][2] * coor.x + pts[1][2] * coor.y + pts[2][2] * coor.z;
-			float w = pts[0][3] * coor.x + pts[1][3] * coor.y + pts[2][3] * coor.z;
+			//透视校正
+			vec3f bc_clip = vec3f(bc_screen.x / clip_verts[0][3], bc_screen.y / clip_verts[1][3], bc_screen.z / clip_verts[2][3]);
+			bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z); // check https://github.com/ssloy/tinyrenderer/wiki/Technical-difficulties-linear-interpolation-with-perspective-deformations
 
-			float depth = z / w;
+			float depth = vec3f(screen_pts[0][2], screen_pts[1][2], screen_pts[2][2]) * bc_screen;
 			int idx = P.x + P.y * image.get_width();
 			if (zbuffer[idx] < depth)
 			{
 				zbuffer[idx] = depth;
 				panda::TGAColor tmp;
-				if (!shader->fragment(coor, tmp))
+				if (!shader->fragment(bc_clip, tmp))
 				{
 					image.set(P.x, P.y, tmp);
 				}
 			}
 		}
 	}
+
 }
 
 vec3f panda::barycentric(const vec2f tri[3], const vec2f& P) {
@@ -235,44 +240,55 @@ mat4x4 panda::Ortho(float bottom, float top, float left, float right, float near
 
 mat4x4 panda::Frustum(float bottom, float top, float left, float right, float near, float far)
 {
-	mat4x4 tmp = { {{2*near / (right - left),0,(right + left) / (right - left), 0},   {0,2*near / (top - bottom),(top + bottom) / (top - bottom),0},   {0,0,-(far + near) / (far - near),-2*far*near / (far - near)},   {0,0,-1,0}} };
+	mat4x4 tmp = { {
+		{2.0f*near / (right - left),0,(right + left) / (right - left), 0},   
+		{0,2.0f*near / (top - bottom),(top + bottom) / (top - bottom),0},   
+		{0,0,-(far + near) / (far - near),-2.0f*far*near / (far - near)},   
+		{0,0,-1.0f,0}} };
 	return tmp;
+
+
 }
 
 mat4x4 panda::Perspective(float fovy, float aspect, float zNear, float zFar)
 {
-	float half = fovy * 0.5f;
-	float h = tan(half / 180.0f * 3.141592653) * zNear;
+	float half = fovy * 0.5f / 180.0f * 3.141592653f;
+	float h = tan(half) * zNear;
 	float w = h * aspect;
 
 	return Frustum(-h, h, -w, w, zNear, zFar);
 }
 
 mat4x4 panda::Lookat(const vec3f eye, const vec3f center, const vec3f up) { // check https://github.com/ssloy/tinyrenderer/wiki/Lesson-5-Moving-the-camera
-	vec3f z = (eye - center).normalize();
-	vec3f x = cross(up, z).normalize();
-	vec3f y = cross(z, x).normalize();
-	//mat4x4 Minv = { {{x.x,x.y,x.z,0.0f},   {y.x,y.y,y.z,0.0f},   {z.x,z.y,z.z,0.0f},   {0,0,0,1.0f}} };
-	//mat4x4 Tr = { {{1,0,0,-eye.x}, {0,1,0,-eye.y}, {0,0,1,-eye.z}, {0,0,0,1}} };
-	//return  Minv * Tr;
+	vec3f z = (center - eye).normalize();
+	vec3f x = cross(z, up).normalize();
+	vec3f y = cross(x, z).normalize();
+
 	mat4x4 tmp = mat4x4::identity();
-	for (int i = 0; i < 3; i++) {
-		tmp[0][i] = x[i];
-		tmp[1][i] = y[i];
-		tmp[2][i] = z[i];
-		tmp[i][3] = -center[i];
-	}
+	tmp[0][0] = x[0];
+	tmp[0][1] = x[1];
+	tmp[0][2] = x[2];
+
+	tmp[1][0] = y[0];
+	tmp[1][1] = y[1];
+	tmp[1][2] = y[2];
+
+	tmp[2][0] = -z[0];//右手坐标系
+	tmp[2][1] = -z[1];
+	tmp[2][2] = -z[2];
+
+	tmp[0][3] = -(x * eye);
+	tmp[1][3] = -(y * eye);
+	tmp[2][3] = -(z * eye);
 	return tmp;
 }
 
 mat4x4 panda::Viewport(int x, int y, int w, int h) {
-	mat4x4 tmp = mat4x4::identity();
-	tmp[0][3] = x + w / 2.f;
-	tmp[1][3] = y + h / 2.f;
-	tmp[2][3] = 255.f / 2.f;
-	tmp[0][0] = w / 2.f;
-	tmp[1][1] = h / 2.f;
-	tmp[2][2] = 255.f / 2.f;
+	mat4x4 tmp = { {
+		{w / 2., 0, 0, x + w / 2.}, 
+		{0, h / 2., 0, y + h / 2.}, 
+		{0, 0, 1, 0}, 
+		{0, 0, 0, 1}} };;
 
 	return tmp;
 }
