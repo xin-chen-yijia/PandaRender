@@ -199,7 +199,7 @@ void panda::triangle(vec4f* clip_verts, float* zbuffer, const mat4x4& viewPort, 
 
 			float depth = vec3f(screen_pts[0][2], screen_pts[1][2], screen_pts[2][2]) * bc_screen;
 			int idx = P.x + P.y * image.get_width();
-			if (zbuffer[idx] < depth)
+			if (depth < zbuffer[idx])
 			{
 				zbuffer[idx] = depth;
 				panda::TGAColor tmp;
@@ -234,7 +234,11 @@ vec3f panda::barycentric(const vec3f& A, const vec3f& B, const vec3f& C, const v
 
 mat4x4 panda::Ortho(float bottom, float top, float left, float right, float near, float far)
 {
-	mat4x4 tmp = { {{2/(right-left),0,0,-(right+left)/(right-left)},   {0,2/(top-bottom),0,-(top+bottom)/(top-bottom)},   {0,0,-2/(far-near),-(far+near)/(far-near)},   {0,0,0,1.0f}} };
+	mat4x4 tmp = { {
+		{2/(right-left),0,0,-(right+left)/(right-left)},   
+		{0,2/(top-bottom),0,-(top+bottom)/(top-bottom)},   
+		{0,0,-2/(far-near),-(far+near)/(far-near)},   
+		{0,0,0,1.0f}} };
 	return tmp;
 }
 
@@ -259,7 +263,7 @@ mat4x4 panda::Perspective(float fovy, float aspect, float zNear, float zFar)
 	return Frustum(-h, h, -w, w, zNear, zFar);
 }
 
-mat4x4 panda::Lookat(const vec3f eye, const vec3f center, const vec3f up) { // check https://github.com/ssloy/tinyrenderer/wiki/Lesson-5-Moving-the-camera
+mat4x4 panda::Lookat(const vec3f eye, const vec3f center, const vec3f up) {
 	vec3f z = (center - eye).normalize();
 	vec3f x = cross(z, up).normalize();
 	vec3f y = cross(x, z).normalize();
@@ -273,9 +277,9 @@ mat4x4 panda::Lookat(const vec3f eye, const vec3f center, const vec3f up) { // c
 	tmp[1][1] = y[1];
 	tmp[1][2] = y[2];
 
-	tmp[2][0] = -z[0];//右手坐标系
-	tmp[2][1] = -z[1];
-	tmp[2][2] = -z[2];
+	tmp[2][0] = z[0];
+	tmp[2][1] = z[1];
+	tmp[2][2] = z[2];
 
 	tmp[0][3] = -(x * eye);
 	tmp[1][3] = -(y * eye);
@@ -287,7 +291,7 @@ mat4x4 panda::Viewport(int x, int y, int w, int h) {
 	mat4x4 tmp = { {
 		{w / 2., 0, 0, x + w / 2.}, 
 		{0, h / 2., 0, y + h / 2.}, 
-		{0, 0, 1, 0}, 
+		{0, 0, -1, 0}, 
 		{0, 0, 0, 1}} };;
 
 	return tmp;

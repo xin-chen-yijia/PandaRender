@@ -32,11 +32,10 @@ public:
 	vec4f vertex(int iface, int nthvert) override
 	{
 		varying_intensity[nthvert] = headModel->normal(iface, nthvert)* light_dir; // get diffuse lighting intensity
+		varying_uvs[nthvert] = headModel->uv(iface, nthvert);
 		auto v = headModel->vert(headModel->face(iface)[nthvert]);
 		vec4f tmp = { v.x,v.y,v.z,1.0f };
-
-		varying_uvs[nthvert] = headModel->uv(iface, nthvert);
-		return proj * view * tmp;
+		return  proj * view * tmp;
 	}
 
 	bool fragment(vec3f bar, TGAColor& color) override
@@ -55,23 +54,26 @@ public:
 
 int main()
 {
+	for (int i = 0;i < width * height;++i)
+	{
+		zbuffer[i] = std::numeric_limits<float>::max();
+	}
 
 	TGAImage image(width, height, TGAImage::RGB);
 
 	TGAImage diffuse;
 	if (!diffuse.read_tga_file("Resource/african_head_diffuse.tga"))
-	//if (!diffuse.read_tga_file("Resource/floor_diffuse.tga"))
+		//if (!diffuse.read_tga_file("Resource/floor_diffuse.tga"))
 	{
 		printf("read diffuse fail...\n");
 		return 1;
 	}
 
 	mat4x4 viewport = Viewport(width / 8.0f, height / 8.0f, width * 0.75f, height * 0.75f);
-	mat4x4 view = Lookat({ 0.0f,0.0f,-3.0f }, { 0,0.0f,0 }, { 0,1,0 });
-	mat4x4 proj = Ortho(-1.0f, 1.0f, -1.0f, 1.0f, 10.0f, -10.0f);
+	mat4x4 view = Lookat({ 0.0f,0.0f,2.0f }, { 0,0.0f,0 }, { 0,1,0 });
+	mat4x4 proj = Ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 100.0f);
 	//mat4x4 proj = Frustum(-1.0f, 1.0f, -1.0f, 1.0f, 0.3f, 100.0f);
 	//mat4x4 proj = Perspective(60.0,1.0f, 0.3f, 20.0f);
-	mat4x4 tmp = proj * view;
 
 	GouraudShader gaudShader;
 	gaudShader.proj = proj;
